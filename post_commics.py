@@ -3,19 +3,24 @@ import random
 import requests
 from pathlib import Path
 from dotenv import load_dotenv
+from pprint import pprint
 
 
-def get_comics_from_xkcd():
-    comics_number = random.randint(1, 2606)
+def get_random_comics_from_xkcd():
+    last_comics_url = "https://xkcd.com/info.0.json"
+    last_comics = requests.get(last_comics_url)
+    last_comics_number = last_comics.json()['num']
+    comics_number = random.randint(1, last_comics_number)
     url_xkcd = f"https://xkcd.com/{comics_number}/info.0.json"
     request_xkcd = requests.get(url_xkcd)
     request_xkcd.raise_for_status()
-    comics_url = request_xkcd.json()["img"]
-    comics_comment = request_xkcd.json()['alt']
+    respone_xkcd = request_xkcd.json()
+    comics_url = respone_xkcd["img"]
+    comics_comment = respone_xkcd['alt']
     return comics_url, comics_comment
 
 
-def create_comics_picture(image_url, picture_pass):
+def save_comics_picture(image_url, picture_pass):
     Path(picture_pass).mkdir(parents=True, exist_ok=True)
     filename = Path(picture_pass, "comics.png")
     response = requests.get(image_url)
@@ -25,11 +30,11 @@ def create_comics_picture(image_url, picture_pass):
         file.close()
 
 
-def upload_picture_to_vk_server(token):
+def upload_picture_to_vk_server(token, group_id):
     upload_server_url = "https://api.vk.com/method/photos.getWallUploadServer"
     payload_upload = {
         "access_token": token,
-        "group_id": 212659626,
+        "group_id": group_id,
         "v": 5.131
     }
     upload_server_response = requests.get(upload_server_url, params=payload_upload)
@@ -39,7 +44,7 @@ def upload_picture_to_vk_server(token):
     with open('comics/comics.png', 'rb') as file:
         files = {
             'photo': file,
-            "group_id": 212659626
+            "group_id": group_id
         }
         post_picture = requests.post(url_for_upload_comics, files=files)
         post_picture.raise_for_status()
@@ -47,11 +52,11 @@ def upload_picture_to_vk_server(token):
         return uploading_picture
 
 
-def saving_picture_vk(picture, comment, token):
+def save_picture_vk(picture, comment, token, group_id, user_id):
     vk_save_picture_url = "https://api.vk.com/method/photos.saveWallPhoto"
     payload_safe_photo = {
-        "user_id": 4025765,
-        "group_id": 212659626,
+        "user_id": user_id,
+        "group_id": group_id,
         'hash': picture['hash'],
         "photo": picture['photo'],
         'server': picture['server'],
@@ -66,11 +71,11 @@ def saving_picture_vk(picture, comment, token):
     return picture_id
 
 
-def public_comics_on_the_wall(id, comment, token):
+def public_comics_on_the_wall(image_id, comment, token, group_id):
     vk_public_photo = "https://api.vk.com/method/wall.post"
     payload_post_photo = {
-        "owner_id": -212659626,
-        "attachments": f"photo4025765_{id}",
+        "owner_id": -int(group_id),
+        "attachments": f"photo4025765_{image_id}",
         "from_group": 1,
         "message": comment,
         "access_token": token,
@@ -79,20 +84,40 @@ def public_comics_on_the_wall(id, comment, token):
     }
     vk_photo_on_wall = requests.post(vk_public_photo, params=payload_post_photo)
     vk_photo_on_wall.raise_for_status()
-    os.remove("comics/comics.png")
+
+def remove_temporary_photo():
+    try:
+        with open('comics/comics.png', 'rb') as file:
+            file.close()
+    finally:
+        os.remove("comics/comics.png")
+
+
+def check_vk_api():
+    try:
+        vk_url = "https://api.vk.com/method/wall.post"
+        vk_response = requests.get(vk_url)
+    except requests.HTTPError():
+        print("Ошибка сервера")
+
 
 
 def main():
     load_dotenv()
+    check_vk_api()
     vk_token = os.getenv("VK_TOKEN")
     user_id = os.getenv("USER_ID")
+    group_id = os.getenv("GROUP_ID")
     path_for_images = "comics"
-    comics_url = get_comics_from_xkcd()[0]
-    comics_comment = get_comics_from_xkcd()[1]
-    create_comics_picture(comics_url, path_for_images)
-    uploading_comics = upload_picture_to_vk_server(vk_token)
-    image_id = saving_picture_vk(uploading_comics, comics_comment, vk_token)
-    public_comics_on_the_wall(image_id, comics_comment, vk_token)
+    random_comics_from_xkcd = get_random_comics_from_xkcd()
+    comics_url = random_comics_from_xkcd[0]
+    comics_comment = random_comics_from_xkcd[1]
+    save_comics_picture(comics_url, path_for_images)
+    uploading_comics = upload_picture_to_vk_server(vk_token, group_id)
+    image_id = save_picture_vk(uploading_comics, comics_comment, vk_token, group_id, user_id)
+    public_comics_on_the_wall(image_id, comics_comment, vk_token, group_id)
+    remove_temporary_photo()
+
 
 
 if __name__ == '__main__':
