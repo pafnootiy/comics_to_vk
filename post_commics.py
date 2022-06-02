@@ -9,12 +9,13 @@ from pprint import pprint
 def get_last_comics_xkcd_number():
     last_comics_url = "https://xkcd.com/info.0.json"
     last_comics = requests.get(last_comics_url)
+    last_comics.raise_for_status()
     last_comics_number = last_comics.json()['num']
     comics_number = random.randint(1, last_comics_number)
     return comics_number
 
 
-def get_random_comics_from_xkcd(comics_number):
+def get_random_url_and_comment_from_xkcd(comics_number):
     url_xkcd = f"https://xkcd.com/{comics_number}/info.0.json"
     request_xkcd = requests.get(url_xkcd)
     request_xkcd.raise_for_status()
@@ -29,7 +30,6 @@ def save_comics_picture(image_url, picture_pass):
     filename = Path(picture_pass, "comics.png")
     response = requests.get(image_url)
     response.raise_for_status()
-    check_vk_api(response)
     with open(filename, 'wb') as file:
         file.write(response.content)
         file.close()
@@ -37,12 +37,12 @@ def save_comics_picture(image_url, picture_pass):
 
 def check_vk_api(vk_response):
     try:
-        pass
-    except "error" in vk_response.json():
-        print("Ошибка сервера ВК")
+        requests.HTTPError()
+    except:
+        print("VKError")
 
 
-def upload_picture_to_vk_server(token, group_id):
+def upload_picture_to_vk_server(token, group_id,path_to_pic):
     upload_server_url = "https://api.vk.com/method/photos.getWallUploadServer"
     payload_upload = {
         "access_token": token,
@@ -50,13 +50,14 @@ def upload_picture_to_vk_server(token, group_id):
         "v": 5.131
     }
     upload_server_response = requests.get(upload_server_url, params=payload_upload)
+    check_vk_error = upload_server_response
     upload_server_response.raise_for_status()
-    check_vk_api(upload_server_response)
+    check_vk_api(check_vk_error)
 
     url_for_upload_comics = upload_server_response.json()['response']['upload_url']
 
 
-    with open('comics/comics.png', 'rb') as file:
+    with open(path_to_pic, 'rb') as file:
         files = {
             'photo': file,
             "group_id": group_id
@@ -84,6 +85,8 @@ def save_picture_vk(picture, comment, token, group_id, user_id):
     vk_safe_photo = requests.post(vk_save_picture_url, params=payload_safe_photo)
     vk_safe_photo.raise_for_status()
     picture_id = vk_safe_photo.json()['response'][0]['id']
+    check_vk_error = vk_safe_photo
+    check_vk_api(check_vk_error)
     return picture_id
 
 
@@ -100,6 +103,8 @@ def get_public_comics_on_the_wall(image_id, comment, token, group_id):
     }
     vk_photo_on_wall = requests.post(vk_public_photo, params=payload_post_photo)
     vk_photo_on_wall.raise_for_status()
+    check_vk_error = vk_photo_on_wall
+    check_vk_api(check_vk_error)
 
 
 def main():
@@ -108,16 +113,18 @@ def main():
     user_id = os.getenv("USER_ID")
     group_id = os.getenv("GROUP_ID")
     path_for_images = "comics"
+    path_to_pic = "comics/comics.png"
     comics_number = get_last_comics_xkcd_number()
-    comics_url, comics_comment = get_random_comics_from_xkcd(comics_number)
+    comics_url, comics_comment = get_random_url_and_comment_from_xkcd(comics_number)
     save_comics_picture(comics_url, path_for_images)
-    uploading_comics = upload_picture_to_vk_server(vk_token, group_id)
+    uploading_comics = upload_picture_to_vk_server(vk_token, group_id,path_to_pic)
     image_id = save_picture_vk(uploading_comics, comics_comment, vk_token, group_id, user_id)
     get_public_comics_on_the_wall(image_id, comics_comment, vk_token, group_id)
+
     try:
         pass
     finally:
-        os.remove("comics/comics.png")
+        os.remove(path_to_pic)
 
 
 if __name__ == '__main__':
