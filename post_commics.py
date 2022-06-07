@@ -6,16 +6,16 @@ from dotenv import load_dotenv
 from pprint import pprint
 
 
-def get_last_comics_xkcd_number():
-    last_comics_url = "https://xkcd.com/info.0.json"
-    last_comics = requests.get(last_comics_url)
-    last_comics.raise_for_status()
-    last_comics_number = last_comics.json()['num']
+def get_random_comics_xkcd_number():
+    random_comics_url = "https://xkcd.com/info.0.json"
+    random_comics = requests.get(random_comics_url)
+    random_comics.raise_for_status()
+    last_comics_number = random_comics.json()['num']
     comics_number = random.randint(1, last_comics_number)
     return comics_number
 
 
-def get_random_url_and_comment_from_xkcd(comics_number):
+def get_url_and_comment_from_xkcd(comics_number):
     url_xkcd = f"https://xkcd.com/{comics_number}/info.0.json"
     request_xkcd = requests.get(url_xkcd)
     request_xkcd.raise_for_status()
@@ -37,9 +37,10 @@ def save_comics_picture(image_url, picture_pass):
 
 def check_vk_api(vk_response):
     try:
-        requests.HTTPError()
+        raise requests.HTTPError()
     except:
-        print("VKError")
+        exit()
+
 
 
 def upload_picture_to_vk_server(token, group_id,path_to_pic):
@@ -114,17 +115,18 @@ def main():
     group_id = os.getenv("GROUP_ID")
     path_for_images = "comics"
     path_to_pic = "comics/comics.png"
-    comics_number = get_last_comics_xkcd_number()
-    comics_url, comics_comment = get_random_url_and_comment_from_xkcd(comics_number)
+    comics_number = get_random_comics_xkcd_number()
+    comics_url, comics_comment = get_url_and_comment_from_xkcd(comics_number)
     save_comics_picture(comics_url, path_for_images)
     uploading_comics = upload_picture_to_vk_server(vk_token, group_id,path_to_pic)
     image_id = save_picture_vk(uploading_comics, comics_comment, vk_token, group_id, user_id)
     get_public_comics_on_the_wall(image_id, comics_comment, vk_token, group_id)
 
     try:
-        pass
+        raise requests.HTTPError()
     finally:
         os.remove(path_to_pic)
+        exit()
 
 
 if __name__ == '__main__':
