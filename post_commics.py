@@ -36,14 +36,11 @@ def save_comics_picture(image_url, picture_pass):
 
 
 def check_vk_api(vk_response):
-    try:
-        raise requests.HTTPError()
-    except:
-        exit()
+    if "error" in vk_response.json():
+        raise VKError
 
 
-
-def upload_picture_to_vk_server(token, group_id,path_to_pic):
+def upload_picture_to_vk_server(token, group_id, path_to_pic):
     upload_server_url = "https://api.vk.com/method/photos.getWallUploadServer"
     payload_upload = {
         "access_token": token,
@@ -56,7 +53,6 @@ def upload_picture_to_vk_server(token, group_id,path_to_pic):
     check_vk_api(check_vk_error)
 
     url_for_upload_comics = upload_server_response.json()['response']['upload_url']
-
 
     with open(path_to_pic, 'rb') as file:
         files = {
@@ -118,15 +114,18 @@ def main():
     comics_number = get_random_comics_xkcd_number()
     comics_url, comics_comment = get_url_and_comment_from_xkcd(comics_number)
     save_comics_picture(comics_url, path_for_images)
-    uploading_comics = upload_picture_to_vk_server(vk_token, group_id,path_to_pic)
-    image_id = save_picture_vk(uploading_comics, comics_comment, vk_token, group_id, user_id)
-    get_public_comics_on_the_wall(image_id, comics_comment, vk_token, group_id)
 
     try:
-        raise requests.HTTPError()
+        uploading_comics = upload_picture_to_vk_server(vk_token, group_id, path_to_pic)
+        image_id = save_picture_vk(uploading_comics, comics_comment, vk_token, group_id, user_id)
+        get_public_comics_on_the_wall(image_id, comics_comment, vk_token, group_id)
+
+    except HTTPError:
+        print("ошибка HTTPError")
+    except VKError:
+        print("ошибка VKError")
     finally:
         os.remove(path_to_pic)
-        exit()
 
 
 if __name__ == '__main__':
