@@ -36,7 +36,7 @@ def save_comics_picture(image_url, picture_pass):
 
 
 def check_vk_api(vk_response):
-    if "error" in vk_response.json():
+    if "error" in vk_response:
         raise VKError
 
 
@@ -48,12 +48,9 @@ def upload_picture_to_vk_server(token, group_id, path_to_pic):
         "v": 5.131
     }
     upload_server_response = requests.get(upload_server_url, params=payload_upload)
-    check_vk_error = upload_server_response
     upload_server_response.raise_for_status()
-    check_vk_api(check_vk_error)
-
     url_for_upload_comics = upload_server_response.json()['response']['upload_url']
-
+    check_vk_api(url_for_upload_comics)
     with open(path_to_pic, 'rb') as file:
         files = {
             'photo': file,
@@ -62,7 +59,7 @@ def upload_picture_to_vk_server(token, group_id, path_to_pic):
         post_picture = requests.post(url_for_upload_comics, files=files)
         post_picture.raise_for_status()
         uploading_picture = post_picture.json()
-        check_vk_api(post_picture)
+        check_vk_api(uploading_picture)
         return uploading_picture
 
 
@@ -82,8 +79,7 @@ def save_picture_vk(picture, comment, token, group_id, user_id):
     vk_safe_photo = requests.post(vk_save_picture_url, params=payload_safe_photo)
     vk_safe_photo.raise_for_status()
     picture_id = vk_safe_photo.json()['response'][0]['id']
-    check_vk_error = vk_safe_photo
-    check_vk_api(check_vk_error)
+    check_vk_api(vk_safe_photo)
     return picture_id
 
 
@@ -100,8 +96,7 @@ def get_public_comics_on_the_wall(image_id, comment, token, group_id):
     }
     vk_photo_on_wall = requests.post(vk_public_photo, params=payload_post_photo)
     vk_photo_on_wall.raise_for_status()
-    check_vk_error = vk_photo_on_wall
-    check_vk_api(check_vk_error)
+    check_vk_api(vk_photo_on_wall)
 
 
 def main():
