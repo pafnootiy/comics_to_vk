@@ -81,16 +81,16 @@ def save_picture_vk(picture, comment, token, group_id, user_id):
         "v": 5.131,
 
     }
-    vk_safe_photo = requests.post(vk_save_picture_url, params=payload_safe_photo)
-    vk_safe_photo.raise_for_status()
-    vk_safe_photo = vk_safe_photo.json()
+    response = requests.post(vk_save_picture_url, params=payload_safe_photo)
+    response.raise_for_status()
+    vk_safe_photo = response.json()
     check_vk_api(vk_safe_photo)
     picture_id = vk_safe_photo['response'][0]['id']
 
     return picture_id
 
 
-def get_public_comics_on_the_wall(image_id, comment, token, group_id):
+def get_publish_comics_on_the_wall(image_id, comment, token, group_id):
     vk_public_photo = "https://api.vk.com/method/wall.post"
     payload_post_photo = {
         "owner_id": -int(group_id),
@@ -101,10 +101,10 @@ def get_public_comics_on_the_wall(image_id, comment, token, group_id):
         "v": 5.131
 
     }
-    vk_photo_on_wall = requests.post(vk_public_photo, params=payload_post_photo)
-    vk_photo_on_wall.raise_for_status()
-    vk_photo_on_wall = vk_photo_on_wall.json()
-    (vk_photo_on_wall)
+    response = requests.post(vk_public_photo, params=payload_post_photo)
+    response.raise_for_status()
+    vk_photo_on_wall = response.json()
+    check_vk_api(vk_photo_on_wall)
 
 
 def main():
@@ -121,7 +121,7 @@ def main():
     try:
         uploading_comics = upload_picture_to_vk_server(vk_token, group_id, path_to_pic)
         image_id = save_picture_vk(uploading_comics, comics_comment, vk_token, group_id, user_id)
-        get_public_comics_on_the_wall(image_id, comics_comment, vk_token, group_id)
+        get_publish_comics_on_the_wall(image_id, comics_comment, vk_token, group_id)
 
     except requests.HTTPError:
         print("ошибка HTTPError")
