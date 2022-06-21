@@ -104,7 +104,7 @@ def get_public_comics_on_the_wall(image_id, comment, token, group_id):
     vk_photo_on_wall = requests.post(vk_public_photo, params=payload_post_photo)
     vk_photo_on_wall.raise_for_status()
     vk_photo_on_wall = vk_photo_on_wall.json()
-    (vk_photo_on_wall)
+    check_vk_api(vk_photo_on_wall)
 
 
 def main():
